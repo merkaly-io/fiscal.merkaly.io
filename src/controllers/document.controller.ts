@@ -17,18 +17,32 @@ export class DocumentController {
       files.map(file => readFromBuffer(file.buffer))
     );
 
-    const qrUrls = qrResults
-      .filter(result => result.status === 'fulfilled')
-      .map(result => result.value);
+    // 2. Construir estructura con nombre + URL válida
+    const qrData = qrResults.map((result, index) => {
+      if (result.status === 'fulfilled') {
+        return {
+          name: files[index].fieldname,
+          url: result.value,
+        };
+      }
+      return null;
+    }).filter(Boolean);
 
-    // 2. Leer NFC-e desde URLs
+    // 3. Leer NFC-e desde URLs
     const nfcResults = await Promise.allSettled(
-      qrUrls.map(url => this.$service.readFromURL(url))
+      qrData.map(item => this.$service.readFromURL(item!.url))
     );
 
-    // 3. Retornar solo resultados válidos
-    return nfcResults
-      .filter(result => result.status === 'fulfilled')
-      .map(result => result.value);
+    // 4. Construir Record final
+    const record: Record<string, any> = {};
+
+    nfcResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        const key = qrData[index]!.name;
+        record[key] = result?.value;
+      }
+    });
+
+    return record;
   }
 }
