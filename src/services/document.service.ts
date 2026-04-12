@@ -1,4 +1,5 @@
 import { parse } from 'node-html-parser';
+import { readFromBuffer } from '../utils/qrcode.util';
 
 function parseNumberish(value?: string) {
   if (!value) {
@@ -11,6 +12,12 @@ function parseNumberish(value?: string) {
 }
 
 export class DocumentService {
+  public async readFromImageBuffer(buffer: Buffer) {
+    const qrValue = await readFromBuffer(buffer);
+
+    return this.readFromURL(qrValue);
+  }
+
   public async readFromURL(QrValue: string) {
     const res = await fetch(QrValue);
     const html = await res.text();
