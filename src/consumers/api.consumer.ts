@@ -1,25 +1,58 @@
-import { BadRequestException, Controller, Logger } from '@nestjs/common';
+import { BadRequestException, Controller, Inject, Logger, UnsupportedMediaTypeException } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import type { ProcessRequest } from 'src/contracts/process.request';
-import { DocumentService } from 'src/services/document.service';
+import { ImageParser } from 'src/parsers/image.parser';
+import { PdfParser } from 'src/parsers/pdf.parser';
+import { XmlParser } from 'src/parsers/xml.parser';
+import { ScrapingService } from 'src/services/scraping.service';
+import { AbstractParser } from '../abstracts/abstract.parser';
 
 @Controller()
 export class ApiConsumer {
   private readonly logger = new Logger(ApiConsumer.name);
 
-  constructor(private readonly documents: DocumentService) {}
+  @Inject()
+  private readonly $image: ImageParser;
+
+  @Inject()
+  private readonly $pdf: PdfParser;
+
+  @Inject()
+  private readonly $xml: XmlParser;
+
+  @Inject()
+  private readonly $scraping: ScrapingService;
 
   @MessagePattern('fiscal.process')
-  public async onFiscalProcess(@Payload() payload: ProcessRequest) {
+  public async onFiscalProcess(@Payload() payload: { content: string; type: 'image' | 'pdf' | 'xml'; }) {
     this.logger.log('[api -> fiscal] Received prototype request');
 
-    if (typeof payload?.nfc !== 'string' || !payload.nfc) {
-      throw new BadRequestException('fiscal.process expects { nfc: string }');
+    if (!payload?.content || !payload?.type) {
+      throw new BadRequestException('fiscal.process expects { type, content }');
     }
 
-    return this.documents.process({
-      type: 'nfc',
-      nfc: Buffer.from(payload.nfc, 'base64'),
-    });
+    const buffer = Buffer.from(payload.content, 'base64');
+
+    let parser!: AbstractParser<Buffer>;
+
+    if (payload.type === 'image') {
+      parser = this.$image;
+    }
+
+    if (payload.type === 'xml') {
+      parser = this.$xml;
+    }
+
+    if (payload.type === 'pdf') {
+      parser = this.$pdf;
+    }
+
+    if (!parser) {
+      throw new UnsupportedMediaTypeException('Unsupported fiscal document format');
+    }
+
+    const url = await parser.parse(buffer);
+
+    return this.$scraping.scrape(url);
+
   }
 }

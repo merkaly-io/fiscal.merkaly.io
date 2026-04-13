@@ -19,8 +19,15 @@ function parseNumberish(value?: string) {
 }
 
 @Injectable()
-export class NfcParser {
-  public parse(html: string, sourceUrl: string): FiscalDocument {
+export class ScrapingService {
+  public async scrape(url: string): Promise<FiscalDocument> {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch NFC-e content from ${url}: ${response.status} ${response.statusText}`);
+    }
+
+    const html = await response.text();
     const dom = parse(html);
 
     return {
@@ -29,7 +36,7 @@ export class NfcParser {
       key: this.parseAccessKey(dom),
       payments: this.parsePayments(dom),
       pricing: this.parsePricing(dom),
-      url: sourceUrl,
+      url,
     };
   }
 
@@ -38,16 +45,16 @@ export class NfcParser {
     const textDivs = header?.querySelectorAll('.text') ?? [];
 
     return {
-      name: header?.querySelector('.txtTopo')?.innerText?.trim()
-        .replace(/\s+/g, ' '),
-      cnpj: textDivs[0]?.innerText
-        .replace('CNPJ:', '')
-        .trim(),
       address: textDivs[1]?.innerText
         .split(',')
         .map((value) => value.trim())
-        .filter((value) => value !== '')
+        .filter(Boolean)
         .join(', '),
+      cnpj: textDivs[0]?.innerText
+        .replace('CNPJ:', '')
+        .trim(),
+      name: header?.querySelector('.txtTopo')?.innerText?.trim()
+        .replace(/\s+/g, ' '),
     };
   }
 
@@ -55,16 +62,16 @@ export class NfcParser {
     const tableItems = dom.querySelector('table#tabResult');
 
     return tableItems?.querySelectorAll('tr').map((row) => ({
-      product: row.querySelector('.txtTit')?.textContent.trim(),
       ean: row.querySelector('.RCod')?.textContent
         .replace('(Código:', '')
         .replace(')', '')
         .trim(),
-      quantity: parseNumberish(this.readTextNode(row.querySelector('.Rqtd'))),
       measure: row.querySelector('.RUN')?.textContent
         .replace('UN:', '')
         .trim(),
       price: parseNumberish(this.readTextNode(row.querySelector('.RvlUnit'))),
+      product: row.querySelector('.txtTit')?.textContent.trim(),
+      quantity: parseNumberish(this.readTextNode(row.querySelector('.Rqtd'))),
       total: parseNumberish(row.querySelector('.valor')?.textContent.trim()),
     })) ?? [];
   }
@@ -73,8 +80,8 @@ export class NfcParser {
     const totalsMap = this.parseTotalsMap(dom);
 
     return {
-      subtotal: parseNumberish(totalsMap['Valor total R$:']) || parseNumberish(totalsMap['Valor a pagar R$:']),
       discount: parseNumberish(totalsMap['Descontos R$:']),
+      subtotal: parseNumberish(totalsMap['Valor total R$:']) || parseNumberish(totalsMap['Valor a pagar R$:']),
       total: parseNumberish(totalsMap['Valor a pagar R$:']),
     };
   }
