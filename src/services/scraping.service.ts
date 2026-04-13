@@ -62,15 +62,15 @@ export class ScrapingService {
     const tableItems = dom.querySelector('table#tabResult');
 
     return tableItems?.querySelectorAll('tr').map((row) => ({
-      ean: row.querySelector('.RCod')?.textContent
+      gtin: row.querySelector('.RCod')?.textContent
         .replace('(Código:', '')
         .replace(')', '')
         .trim(),
       measure: row.querySelector('.RUN')?.textContent
         .replace('UN:', '')
         .trim(),
+      name: row.querySelector('.txtTit')?.textContent.trim(),
       price: parseNumberish(this.readTextNode(row.querySelector('.RvlUnit'))),
-      product: row.querySelector('.txtTit')?.textContent.trim(),
       quantity: parseNumberish(this.readTextNode(row.querySelector('.Rqtd'))),
       total: parseNumberish(row.querySelector('.valor')?.textContent.trim()),
     })) ?? [];

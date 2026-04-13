@@ -5,10 +5,10 @@ export interface Customer {
 }
 
 export interface Item {
-  ean?: string;
+  gtin?: string;
   measure?: string;
   price: number;
-  product?: string;
+  name?: string;
   quantity: number;
   total: number;
 }
