@@ -7,8 +7,8 @@ export interface Customer {
 export interface Item {
   gtin?: string;
   measure?: string;
-  price: number;
   name?: string;
+  price: number;
   quantity: number;
   total: number;
 }

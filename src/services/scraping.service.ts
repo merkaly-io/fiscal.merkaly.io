@@ -1,14 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { parse, type HTMLElement } from 'node-html-parser';
-import {
-  Customer,
-  FiscalDocument,
-  Item,
-  Payment,
-  Pricing,
-} from 'src/contracts/document.interface';
+import { Customer, FiscalDocument, Item, Payment, Pricing } from 'src/contracts/document.interface';
 
-function parseNumberish(value?: string) {
+function asNumberish(value?: string) {
   if (!value) {
     return 0;
   }
@@ -16,6 +10,18 @@ function parseNumberish(value?: string) {
   return Number(value
     .replaceAll('.', '')
     .replaceAll(',', '.'));
+}
+
+function asPrice(value?: string) {
+  if (!value) {
+    return 0;
+  }
+
+  const normalized = value.replace(/\./g, '');
+  const [intPart, decimalPart = ''] = normalized.split(',');
+  const cents = intPart + decimalPart.padEnd(2, '0').slice(0, 2);
+
+  return Number(cents);
 }
 
 @Injectable()
@@ -66,13 +72,18 @@ export class ScrapingService {
         .replace('(Código:', '')
         .replace(')', '')
         .trim(),
+
       measure: row.querySelector('.RUN')?.textContent
         .replace('UN:', '')
         .trim(),
+
       name: row.querySelector('.txtTit')?.textContent.trim(),
-      price: parseNumberish(this.readTextNode(row.querySelector('.RvlUnit'))),
-      quantity: parseNumberish(this.readTextNode(row.querySelector('.Rqtd'))),
-      total: parseNumberish(row.querySelector('.valor')?.textContent.trim()),
+
+      price: asPrice(this.readTextNode(row.querySelector('.RvlUnit'))),
+
+      quantity: asNumberish(this.readTextNode(row.querySelector('.Rqtd'))),
+
+      total: asPrice(row.querySelector('.valor')?.textContent.trim()),
     })) ?? [];
   }
 
@@ -80,9 +91,9 @@ export class ScrapingService {
     const totalsMap = this.parseTotalsMap(dom);
 
     return {
-      discount: parseNumberish(totalsMap['Descontos R$:']),
-      subtotal: parseNumberish(totalsMap['Valor total R$:']) || parseNumberish(totalsMap['Valor a pagar R$:']),
-      total: parseNumberish(totalsMap['Valor a pagar R$:']),
+      discount: asPrice(totalsMap['Descontos R$:']),
+      subtotal: asPrice(totalsMap['Valor total R$:']) || asPrice(totalsMap['Valor a pagar R$:']),
+      total: asPrice(totalsMap['Valor a pagar R$:']),
     };
   }
 
@@ -98,7 +109,7 @@ export class ScrapingService {
       .filter((line) => line.querySelector('label.tx'))
       .map((line) => ({
         method: line.querySelector('label.tx')?.textContent.trim(),
-        paid: parseNumberish(line.querySelector('.totalNumb')?.textContent.trim()),
+        paid: asPrice(line.querySelector('.totalNumb')?.textContent.trim()),
       }));
   }
 
