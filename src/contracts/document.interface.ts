@@ -26,6 +26,7 @@ export interface Pricing {
 
 export interface FiscalDocument {
   customer: Customer;
+  issuedAt?: string | null;
   items: Item[];
   key: string | null;
   payments: Payment[];

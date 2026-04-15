@@ -24,6 +24,32 @@ function asPrice(value?: string) {
   return Number(cents);
 }
 
+function asIsoDateTime(value?: string) {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.match(
+    /(?<day>\d{2})\/(?<month>\d{2})\/(?<year>\d{4})\s+(?<hour>\d{2}):(?<minute>\d{2})(?::(?<second>\d{2}))?(?<offset>[+-]\d{2}:\d{2})?/,
+  );
+
+  if (!match?.groups) {
+    return null;
+  }
+
+  const {
+    day,
+    month,
+    year,
+    hour,
+    minute,
+    second = '00',
+    offset = '',
+  } = match.groups;
+
+  return `${year}-${month}-${day}T${hour}:${minute}:${second}${offset}`;
+}
+
 @Injectable()
 export class ScrapingService {
   public async scrape(url: string): Promise<FiscalDocument> {
@@ -38,6 +64,7 @@ export class ScrapingService {
 
     return {
       customer: this.parseCustomer(dom),
+      issuedAt: this.parseIssuedAt(dom),
       items: this.parseItems(dom),
       key: this.parseAccessKey(dom),
       payments: this.parsePayments(dom),
@@ -135,6 +162,15 @@ export class ScrapingService {
     const infoLis = infosSection?.querySelectorAll('li') ?? [];
 
     return infoLis[1]?.querySelector('.chave')?.textContent.trim() ?? null;
+  }
+
+  private parseIssuedAt(dom: HTMLElement) {
+    const text = dom.innerText.replace(/\s+/g, ' ');
+    const dateTime = text.match(
+      /(?:Data\s+de\s+Emiss[aã]o|Emiss[aã]o)\s*:?\s*(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}(?::\d{2})?(?:[+-]\d{2}:\d{2})?)/i,
+    )?.[1];
+
+    return asIsoDateTime(dateTime) ?? dateTime ?? null;
   }
 
   private readTextNode(element?: HTMLElement | null) {
