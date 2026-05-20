@@ -17,7 +17,7 @@
     "@nestjs/common": "^11.1.18",
     "@nestjs/core": "^11.1.18",
     "@nestjs/microservices": "^11.1.19",
-    "@zxing/library": "^0.21.3",
+    "@zxing/library": "^0.23.0",
     "amqp-connection-manager": "^5.0.0",
     "amqplib": "^1.0.3",
     "jsqr": "^1.4.0",
