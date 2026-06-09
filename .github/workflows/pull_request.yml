@@ -1,0 +1,25 @@
+name: PullRequest & Push master
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: merkaly-io/actions/setup@master
+
+      - run: pnpm lint
+        continue-on-error: true
+
+      - run: pnpm build
+
+      - uses: merkaly-io/actions/dependabot@master
