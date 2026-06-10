@@ -14,20 +14,23 @@
     "test": "jest"
   },
   "dependencies": {
-    "@merkaly/nest": "^0.1.2",
+    "@merkaly/nest": "^0.1.5",
     "@zxing/library": "^0.23.0",
     "jsqr": "^1.4.0",
     "node-html-parser": "^7.1.0",
     "sharp": "^0.34.5",
     "zxing-wasm": "^3.1.0"
   },
-  "devDependencies": {},
   "packageManager": "pnpm@10.28.2",
   "engines": {
     "node": ">=20"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@nestjs/core", "sharp", "unrs-resolver"]
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "sharp",
+      "unrs-resolver"
+    ]
   },
   "jest": {
     "moduleFileExtensions": [
